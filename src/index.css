@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-950: #030712;
+  --color-slate-900: #0b0f19;
+  --color-slate-850: #111827;
+  --color-slate-800: #1f2937;
+  --color-slate-750: #374151;
+  --color-slate-700: #4b5563;
+  
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+@utility glass-panel {
+  background: rgba(11, 15, 25, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@utility glass-input {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease-in-out;
+}
+
+@utility text-gradient-indigo {
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, var(--color-indigo-400), var(--color-purple-400), var(--color-pink-400));
+}
+
+@utility text-gradient-emerald {
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, var(--color-emerald-400), var(--color-teal-300));
+}
+
+@utility text-gradient-amber {
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, var(--color-amber-400), var(--color-orange-400));
+}
+
+@utility text-gradient-rose {
+  background-clip: text;
+  color: transparent;
+  background-image: linear-gradient(to right, var(--color-rose-400), var(--color-red-400));
+}
+
+body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-100);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(3, 7, 18, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Pulse animation for node edges */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.animate-dash {
+  stroke-dasharray: 5;
+  animation: dash 2s linear infinite;
+}
