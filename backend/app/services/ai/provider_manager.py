@@ -1,24 +1,22 @@
-"""
-provider_manager.py — Production-ready Provider Manager for LLMs.
+"""Production-ready multi-provider LLM routing with failover and key rotation."""
 
-Handles prioritised routing, key rotation, automatic failover, retries,
-and cooldown management across Google Gemini, Groq, and OpenRouter.
-"""
-import os
+from __future__ import annotations
+
 import json
-import time
 import logging
-import urllib.request
-import urllib.error
+import os
 import socket
-from typing import List, Dict, Any, Tuple
+import sys
+import time
+import urllib.error
+import urllib.request
 
 from app.core.config import settings
 
 logger = logging.getLogger("speclens.provider_manager")
 
-# Cooldown duration in seconds (5 minutes)
 COOLDOWN_DURATION = 300
+HTTP_TIMEOUT_SECONDS = 30.0
 
 # ===========================================================================
 # Exception Hierarchy
@@ -45,8 +43,9 @@ class PermanentAPIError(ProviderError):
     pass
 
 class AllProvidersUnavailableError(Exception):
-    """Error raised when all configured provider keys have failed/exhausted."""
-    def __init__(self, providers_attempted: List[str]):
+    """Raised when every configured provider key has failed or is on cooldown."""
+
+    def __init__(self, providers_attempted: list[str]) -> None:
         self.providers_attempted = providers_attempted
         super().__init__(f"ALL_AI_PROVIDERS_UNAVAILABLE: Tried {providers_attempted}")
 
@@ -57,8 +56,8 @@ class AllProvidersUnavailableError(Exception):
 
 class BaseAIProvider:
     """Interface for LLM API integration adapters."""
-    
-    def __init__(self, key_name: str, api_key: str):
+
+    def __init__(self, key_name: str, api_key: str) -> None:
         self.key_name = key_name
         self.api_key = api_key
         self.provider_type = "Base"
@@ -67,8 +66,24 @@ class BaseAIProvider:
         """Call the API endpoint and return the completed text response."""
         raise NotImplementedError("Subclasses must implement generate().")
 
-    def _execute_http(self, url: str, headers: Dict[str, str], payload: Dict[str, Any], timeout: float = 30.0) -> Tuple[int, str]:
-        """Execute HTTP POST request with a timeout using standard library."""
+    def _execute_http(
+        self,
+        url: str,
+        headers: dict[str, str],
+        payload: dict[str, object],
+        timeout: float = HTTP_TIMEOUT_SECONDS,
+    ) -> tuple[int, str]:
+        """Execute an HTTP POST request with a timeout using the standard library.
+
+        Args:
+            url: Target API endpoint.
+            headers: Request headers.
+            payload: JSON-serialisable request body.
+            timeout: Request timeout in seconds.
+
+        Returns:
+            A tuple of HTTP status code and response body text.
+        """
         req_data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url, data=req_data, headers=headers, method="POST")
         try:
@@ -96,11 +111,11 @@ class GeminiProvider(BaseAIProvider):
         "gemini-2.0-flash-lite",
     )
     
-    def __init__(self, key_name: str, api_key: str):
+    def __init__(self, key_name: str, api_key: str) -> None:
         super().__init__(key_name, api_key)
         self.provider_type = "Google Gemini"
 
-    def _models_to_try(self) -> List[str]:
+    def _models_to_try(self) -> list[str]:
         primary = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
         models = [primary]
         for candidate in self.MODEL_FALLBACKS:
@@ -108,7 +123,7 @@ class GeminiProvider(BaseAIProvider):
                 models.append(candidate)
         return models
 
-    def _request_once(self, model: str, prompt: str, temperature: float) -> Tuple[int, str]:
+    def _request_once(self, model: str, prompt: str, temperature: float) -> tuple[int, str]:
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{model}:generateContent?key={self.api_key}"
@@ -173,7 +188,7 @@ class GeminiProvider(BaseAIProvider):
 class GroqProvider(BaseAIProvider):
     """Adapter for Groq Chat Completions API."""
     
-    def __init__(self, key_name: str, api_key: str):
+    def __init__(self, key_name: str, api_key: str) -> None:
         super().__init__(key_name, api_key)
         self.provider_type = "Groq"
 
@@ -229,11 +244,11 @@ class OpenRouterProvider(BaseAIProvider):
         "openrouter/free",
     )
     
-    def __init__(self, key_name: str, api_key: str):
+    def __init__(self, key_name: str, api_key: str) -> None:
         super().__init__(key_name, api_key)
         self.provider_type = "OpenRouter"
 
-    def _models_to_try(self) -> List[str]:
+    def _models_to_try(self) -> list[str]:
         primary = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
         models = [primary]
         for candidate in self.FREE_MODEL_FALLBACKS:
@@ -241,7 +256,7 @@ class OpenRouterProvider(BaseAIProvider):
                 models.append(candidate)
         return models
 
-    def _request_once(self, model: str, prompt: str, temperature: float) -> Tuple[int, str]:
+    def _request_once(self, model: str, prompt: str, temperature: float) -> tuple[int, str]:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -319,15 +334,15 @@ class OpenRouterProvider(BaseAIProvider):
 # ===========================================================================
 
 class ProviderManager:
-    """Manages prioritizing, rotating, and failing over LLM API calls."""
-    
-    def __init__(self):
-        self.providers: List[BaseAIProvider] = []
-        self.failed_keys: Dict[str, float] = {}  # key_name -> cooldown_until_timestamp
+    """Manage prioritised LLM provider routing, rotation, and failover."""
+
+    def __init__(self) -> None:
+        self.providers: list[BaseAIProvider] = []
+        self.failed_keys: dict[str, float] = {}
         self.cooldown_duration = COOLDOWN_DURATION
         self._initialize_providers()
 
-    def _initialize_providers(self):
+    def _initialize_providers(self) -> None:
         """Initialise active providers based on priority order and config settings."""
         for i, key in enumerate(settings.gemini_keys):
             self.providers.append(GeminiProvider(f"Gemini Key {i+1}", key))
@@ -341,7 +356,7 @@ class ProviderManager:
         logger.info(f"Initialized ProviderManager with {len(self.providers)} configured provider keys.")
 
     def is_key_available(self, key_name: str) -> bool:
-        """Check if a key is available (either not failed, or cooldown expired)."""
+        """Return True when a key is not on cooldown or its cooldown has expired."""
         if key_name not in self.failed_keys:
             return True
             
@@ -354,9 +369,17 @@ class ProviderManager:
         return False
 
     def generate(self, prompt: str, temperature: float = 0.1) -> str:
-        """
-        Executes a prompt generation across prioritized active provider keys.
-        Supports automatic rotation, transient retries, and rate-limit cooldown tracking.
+        """Execute prompt generation across prioritised provider keys with failover.
+
+        Args:
+            prompt: Full prompt text sent to the active provider.
+            temperature: Sampling temperature passed to the provider API.
+
+        Returns:
+            Generated text from the first successful provider response.
+
+        Raises:
+            AllProvidersUnavailableError: When every provider attempt fails or is cooling down.
         """
         # Determine current available providers
         available_providers = [p for p in self.providers if self.is_key_available(p.key_name)]
@@ -381,7 +404,6 @@ class ProviderManager:
             print(provider.provider_type)
             print("\nUsing API Key:")
             print(provider.key_name)
-            import sys
             sys.stdout.flush()
 
             # Estimate prompt tokens (~4 chars per token)

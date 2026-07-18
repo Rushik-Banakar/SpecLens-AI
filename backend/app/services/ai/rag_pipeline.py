@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Protocol, Sequence
+from typing import Any, Protocol, Sequence
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -28,14 +28,23 @@ class VectorStoreProvider(Protocol):
 
 
 class InMemoryFaissStore:
-    """Process-local FAISS implementation of VectorStoreProvider."""
+    """Process-local FAISS implementation of ``VectorStoreProvider``."""
 
-    def __init__(self, documents: Sequence[Document]):
+    def __init__(self, documents: Sequence[Document]) -> None:
+        """Create an in-memory vector store from document chunks.
+
+        Args:
+            documents: Chunked documents to embed and index.
+
+        Raises:
+            ValueError: If no documents are supplied.
+        """
         if not documents:
             raise ValueError("Cannot create a vector store without document chunks.")
         self._store = FAISS.from_documents(list(documents), _get_embeddings())
 
-    def as_retriever(self, *, k: int):
+    def as_retriever(self, *, k: int) -> Any:
+        """Return a LangChain retriever configured for similarity search."""
         return self._store.as_retriever(
             search_type="similarity", search_kwargs={"k": k}
         )
@@ -55,8 +64,18 @@ def _get_embeddings() -> HuggingFaceEmbeddings:
 class RagPipeline:
     """Split, embed, retrieve, and reason through a RetrievalQA chain using shared Groq LLM."""
 
-    def __init__(self, documents: Sequence[Document], *, vector_store: VectorStoreProvider | None = None):
-        """Build chunk embeddings and a retriever for the supplied documents."""
+    def __init__(
+        self,
+        documents: Sequence[Document],
+        *,
+        vector_store: VectorStoreProvider | None = None,
+    ) -> None:
+        """Build chunk embeddings and a retriever for the supplied documents.
+
+        Args:
+            documents: Source documents to chunk and index.
+            vector_store: Optional pre-built vector store for dependency injection.
+        """
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=CHUNK_SIZE,
             chunk_overlap=CHUNK_OVERLAP,

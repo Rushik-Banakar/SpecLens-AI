@@ -45,8 +45,13 @@ def _strip_markdown_fences(text: str) -> str:
 
 
 def _parse_plain_text_fallback(text: str) -> list[dict[str, Any]]:
-    """
-    Split plain text by line or sentence and manually construct requirement dictionaries.
+    """Build requirement dictionaries from unstructured text when JSON parsing fails.
+
+    Args:
+        text: Raw model output or plain document text.
+
+    Returns:
+        Heuristically parsed requirement dictionaries suitable for normalisation.
     """
     logger.info("[EXTRACTOR] JSON parsing failed. Running line/regex fallback parser.")
     raw_reqs = []
@@ -118,9 +123,19 @@ def _parse_requirements_json(
     id_offset: int,
     attempt: int = 1,
 ) -> tuple[list[Requirement], str]:
-    """
-    Parse the LLM JSON output into Requirement objects.
-    Raises ValueError if parsing fails on attempt 1.
+    """Parse LLM JSON output into validated ``Requirement`` objects.
+
+    Args:
+        raw: Raw model response text.
+        document_name: Source document filename for metadata.
+        id_offset: Numeric offset used to keep requirement IDs globally unique.
+        attempt: Current parse attempt number (1 or 2).
+
+    Returns:
+        Parsed requirements and a short status string describing the parse path.
+
+    Raises:
+        ValueError: When parsing fails on the first attempt.
     """
     logger.debug("Raw LLM response before parsing for '%s': %s", document_name, raw)
 
@@ -293,9 +308,21 @@ def _extract_from_document(
     attempt: int = 1,
     previous_response: str | None = None,
 ) -> list[Requirement]:
-    """
-    Run the extraction chain for a single document.
-    Automatically retries once if the response is malformed JSON.
+    """Run the extraction chain for a single document with one JSON retry.
+
+    Args:
+        llm: Compatibility LLM wrapper (retained for interface parity).
+        doc: Parsed document input containing filename and text.
+        id_offset: Numeric offset used to keep requirement IDs globally unique.
+        attempt: Current extraction attempt number (1 or 2).
+        previous_response: Prior invalid model output included on retry prompts.
+
+    Returns:
+        Structured requirements extracted from the document.
+
+    Raises:
+        AllProvidersUnavailableError: When every configured provider is unavailable.
+        RuntimeError: When provider calls or parsing fail after retries.
     """
     # Truncate oversized documents
     text = doc.text
@@ -375,7 +402,18 @@ def _extract_from_document(
 
 
 def extract_requirements(documents: list[DocumentInput]) -> dict[str, Any]:
-    """Extract structured requirements from a list of parsed documents."""
+    """Extract structured requirements from a list of parsed documents.
+
+    Args:
+        documents: Parsed document payloads from the extraction API route.
+
+    Returns:
+        Serialised requirements and per-document extraction statistics.
+
+    Raises:
+        AllProvidersUnavailableError: When every configured provider is unavailable.
+        RuntimeError: When no requirements could be extracted from any document.
+    """
     logger.info("[EXTRACTOR] Starting extraction for %d document(s)", len(documents))
     t_start = time.time()
 

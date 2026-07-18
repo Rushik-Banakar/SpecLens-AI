@@ -1,1 +1,1 @@
-# AI services package
+"""AI services: extraction, collision detection, duplicate detection, and RAG."""

@@ -14,7 +14,17 @@ from langchain_core.documents import Document
 
 
 def load_uploaded_document(file_path: str) -> list[Document]:
-    """Load one supported upload and retain its original filename as metadata."""
+    """Load one supported upload and retain its original filename as metadata.
+
+    Args:
+        file_path: Path to an uploaded PDF, DOCX, TXT, or Markdown file.
+
+    Returns:
+        LangChain ``Document`` objects with ``source`` and ``filename`` metadata.
+
+    Raises:
+        ValueError: If the extension is unsupported or no readable content is found.
+    """
     path = Path(file_path)
     extension = path.suffix.lower()
     if extension == ".pdf":
