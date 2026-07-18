@@ -216,12 +216,12 @@ function LandingBackground() {
 
 function FeatureCard({ icon: Icon, iconStyles, title, description }) {
   return (
-    <article className="landing-card p-6 rounded-2xl h-full">
-      <div className={`w-11 h-11 rounded-xl border flex items-center justify-center mb-5 ${iconStyles}`}>
+    <article className="landing-card group p-6 md:p-7 rounded-2xl h-full flex flex-col">
+      <div className={`w-11 h-11 rounded-xl border flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-105 ${iconStyles}`}>
         <Icon size={22} aria-hidden="true" />
       </div>
-      <h3 className="text-lg font-bold text-slate-100 mb-2">{title}</h3>
-      <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
+      <h3 className="text-base md:text-lg font-semibold text-slate-100 mb-2.5 landing-section-heading">{title}</h3>
+      <p className="text-sm text-slate-400/90 leading-relaxed flex-1">{description}</p>
     </article>
   );
 }
@@ -234,29 +234,29 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
       <LandingBackground />
 
       <section
-        className="relative pt-28 pb-16 md:pt-36 md:pb-24 max-w-7xl mx-auto px-4 sm:px-6 text-center"
+        className="relative pt-32 pb-20 md:pt-40 md:pb-28 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
         aria-labelledby="hero-heading"
       >
         <FadeInSection>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-950/50 text-indigo-300 text-xs font-semibold mb-8 tracking-wide">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-indigo-500/25 bg-indigo-950/40 text-indigo-300 text-xs font-medium mb-8 tracking-wide">
             <Sparkles size={13} className="text-indigo-400" aria-hidden="true" />
             <span>AI Design Review Engineer</span>
           </div>
 
           <h1
             id="hero-heading"
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.08]"
+            className="max-w-4xl mx-auto text-4xl sm:text-5xl md:text-[3.25rem] lg:text-6xl font-semibold tracking-tight mb-6 leading-[1.1] landing-section-heading text-slate-50"
           >
             Review your project <br className="hidden sm:block" />
             <span className="text-gradient-indigo">before your developers do.</span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-400 leading-relaxed mb-10 px-2">
+          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-400/90 leading-relaxed mb-11 px-2">
             SpecLens AI reads your PRDs, API specs, and architecture docs — then finds contradictions,
             ambiguities, and gaps across documents before a single line of code is written.
           </p>
 
-          <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 mb-12 px-2">
+          <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-3.5 mb-14 px-2">
             <button
               type="button"
               onClick={onStartReview}
@@ -278,7 +278,7 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
           </div>
 
           <div className="flex flex-col items-center gap-3 mb-14 text-slate-500 text-xs">
-            <span className="font-semibold uppercase tracking-widest text-[10px] text-slate-500">Supported Formats</span>
+            <span className="landing-section-label">Supported Formats</span>
             <div className="flex flex-wrap justify-center items-center gap-2 max-w-xl">
               {['PDF', 'DOCX', 'Markdown', 'TXT', 'OpenAPI', 'Jira Export'].map((format) => (
                 <span
@@ -296,7 +296,7 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
           <div aria-labelledby="workflow-heading">
             <span
               id="workflow-heading"
-              className="font-semibold uppercase tracking-widest text-[10px] text-slate-500 block mb-6 text-center"
+              className="landing-section-label block mb-6 text-center"
             >
               SpecLens AI Analysis Pipeline
             </span>
@@ -324,16 +324,16 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </FadeInSection>
 
         <FadeInSection delay={120}>
-          <div className="text-center mb-6">
-            <h2 className="text-lg md:text-xl font-semibold text-slate-200 mb-2 tracking-tight">
+          <div className="text-center mb-8 md:mb-10">
+            <h2 className="text-lg md:text-xl font-semibold text-slate-100 mb-2.5 tracking-tight landing-section-heading">
               Sample Analysis Preview
             </h2>
-            <p className="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+            <p className="text-sm md:text-base text-slate-400/90 max-w-xl mx-auto leading-relaxed">
               An example of the executive dashboard generated after analyzing specification documents.
             </p>
           </div>
           <div
-            className="relative mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-950/70 p-2 md:p-3 shadow-2xl backdrop-blur-md"
+            className="relative mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-950/70 p-2 md:p-3 shadow-2xl backdrop-blur-md landing-demo-frame"
             role="img"
             aria-label="Preview of SpecLens AI dashboard showing conflict detection and health score"
           >
@@ -403,8 +403,8 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </FadeInSection>
       </section>
 
-      <section className="py-14 md:py-16 border-t border-slate-900/80 relative" aria-labelledby="stats-heading">
-        <div ref={statsSection.ref} className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-16 md:py-20 border-t border-white/[0.06] relative" aria-labelledby="stats-heading">
+        <div ref={statsSection.ref} className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 id="stats-heading" className="sr-only">Platform capabilities at a glance</h2>
           <ul className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {STATS.map((stat) => (
@@ -420,17 +420,17 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </div>
       </section>
 
-      <section id="features" className="py-20 md:py-28 max-w-7xl mx-auto px-4 sm:px-6 border-t border-slate-900 relative" aria-labelledby="features-heading">
-        <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-16">
-          <h2 id="features-heading" className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">
+      <section id="features" className="py-24 md:py-32 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-white/[0.06] relative" aria-labelledby="features-heading">
+        <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-20">
+          <h2 id="features-heading" className="text-3xl md:text-4xl font-semibold mb-4 tracking-tight landing-section-heading text-slate-50">
             Powerful Spec Analysis Engine
           </h2>
-          <p className="text-slate-400 text-base md:text-lg">
+          <p className="text-slate-400/90 text-base md:text-lg leading-relaxed">
             SpecLens AI parses project files in seconds, running multi-doc cross-references to identify engineering friction.
           </p>
         </FadeInSection>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
           <FadeInSection delay={0}>
             <FeatureCard
               icon={ShieldAlert}
@@ -466,28 +466,28 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </div>
       </section>
 
-      <section className="py-20 md:py-28 bg-slate-950/40 border-t border-slate-900 relative" aria-labelledby="value-heading">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-16">
-            <h2 id="value-heading" className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">
+      <section className="py-24 md:py-32 bg-white/[0.02] border-t border-white/[0.06] relative" aria-labelledby="value-heading">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-20">
+            <h2 id="value-heading" className="text-3xl md:text-4xl font-semibold mb-4 tracking-tight landing-section-heading text-slate-50">
               Why SpecLens AI matters
             </h2>
-            <p className="text-slate-400 text-base md:text-lg">
+            <p className="text-slate-400/90 text-base md:text-lg leading-relaxed">
               Turn scattered documents into a single source of truth — before development starts.
             </p>
           </FadeInSection>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
             {VALUE_CARDS.map((card, index) => {
               const CardIcon = card.icon;
               return (
                 <FadeInSection key={card.title} delay={index * 60}>
-                  <article className="landing-card h-full p-6 rounded-2xl">
-                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center mb-5 ${card.iconBg}`}>
+                  <article className="landing-card group h-full p-6 md:p-7 rounded-2xl">
+                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-105 ${card.iconBg}`}>
                       <CardIcon size={22} className={card.accent} aria-hidden="true" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-100 mb-2">{card.title}</h3>
-                    <p className="text-sm text-slate-400 leading-relaxed">{card.description}</p>
+                    <h3 className="text-base md:text-lg font-semibold text-slate-100 mb-2.5 landing-section-heading">{card.title}</h3>
+                    <p className="text-sm text-slate-400/90 leading-relaxed">{card.description}</p>
                   </article>
                 </FadeInSection>
               );
@@ -496,61 +496,61 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </div>
       </section>
 
-      <section className="py-20 md:py-28 border-t border-slate-900 relative" aria-labelledby="how-heading">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-16">
-            <h2 id="how-heading" className="text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">
+      <section id="how-it-works" className="py-24 md:py-32 border-t border-white/[0.06] relative" aria-labelledby="how-heading">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <FadeInSection className="text-center max-w-2xl mx-auto mb-14 md:mb-20">
+            <h2 id="how-heading" className="text-3xl md:text-4xl font-semibold mb-4 tracking-tight landing-section-heading text-slate-50">
               Three steps to alignment
             </h2>
-            <p className="text-slate-400 text-base md:text-lg">
+            <p className="text-slate-400/90 text-base md:text-lg leading-relaxed">
               Run reviews before development. Align product owners, architects, and engineers from day one.
             </p>
           </FadeInSection>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 text-left">
             <FadeInSection delay={0}>
-              <article className="landing-card h-full p-8 rounded-2xl relative">
-                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900 select-none" aria-hidden="true">1</div>
+              <article className="landing-card landing-step-card h-full p-8 md:p-9 rounded-2xl relative">
+                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900/80 select-none" aria-hidden="true">1</div>
                 <div className="flex items-center gap-3 mb-6">
                   <span className="p-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
                     <FileText size={18} aria-hidden="true" />
                   </span>
-                  <span className="font-bold text-slate-200">Upload Specs</span>
+                  <span className="font-semibold text-slate-200">Upload Specs</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-100 mb-2">Submit drafts &amp; templates</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-100 mb-2.5 landing-section-heading">Submit drafts &amp; templates</h3>
+                <p className="text-sm text-slate-400/90 leading-relaxed">
                   Drag and drop your project documents (PDF, DOCX, TXT, MD, YAML). Submit everything together.
                 </p>
               </article>
             </FadeInSection>
 
             <FadeInSection delay={80}>
-              <article className="landing-card h-full p-8 rounded-2xl relative">
-                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900 select-none" aria-hidden="true">2</div>
+              <article className="landing-card landing-step-card h-full p-8 md:p-9 rounded-2xl relative">
+                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900/80 select-none" aria-hidden="true">2</div>
                 <div className="flex items-center gap-3 mb-6">
                   <span className="p-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
                     <Cpu size={18} aria-hidden="true" />
                   </span>
-                  <span className="font-bold text-slate-200">Deep AI Parse</span>
+                  <span className="font-semibold text-slate-200">Deep AI Parse</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-100 mb-2">Automatic Cross-Audit</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-100 mb-2.5 landing-section-heading">Automatic Cross-Audit</h3>
+                <p className="text-sm text-slate-400/90 leading-relaxed">
                   The engine correlates sentences, data models, APIs, and business statements to reveal contradictions and discrepancies.
                 </p>
               </article>
             </FadeInSection>
 
             <FadeInSection delay={160}>
-              <article className="landing-card h-full p-8 rounded-2xl relative">
-                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900 select-none" aria-hidden="true">3</div>
+              <article className="landing-card landing-step-card h-full p-8 md:p-9 rounded-2xl relative">
+                <div className="absolute top-6 right-6 text-7xl font-black text-slate-900/80 select-none" aria-hidden="true">3</div>
                 <div className="flex items-center gap-3 mb-6">
                   <span className="p-2 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
                     <CheckCircle size={18} aria-hidden="true" />
                   </span>
-                  <span className="font-bold text-slate-200">Resolve &amp; Build</span>
+                  <span className="font-semibold text-slate-200">Resolve &amp; Build</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-100 mb-2">Fix issues early</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">
+                <h3 className="text-lg font-semibold text-slate-100 mb-2.5 landing-section-heading">Fix issues early</h3>
+                <p className="text-sm text-slate-400/90 leading-relaxed">
                   Review findings grouped by impact. Toggle details, review recommendations, print reports, and correct specs before starting sprints.
                 </p>
               </article>
@@ -559,13 +559,13 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 border-t border-slate-900 bg-slate-950/30" aria-labelledby="trust-heading">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <section className="py-20 md:py-24 border-t border-white/[0.06] bg-white/[0.015]" aria-labelledby="trust-heading">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <FadeInSection className="text-center max-w-2xl mx-auto mb-10 md:mb-12">
-            <h2 id="trust-heading" className="text-2xl md:text-3xl font-extrabold mb-3 tracking-tight">
+            <h2 id="trust-heading" className="text-2xl md:text-3xl font-semibold mb-3 tracking-tight landing-section-heading text-slate-50">
               Built for real engineering teams
             </h2>
-            <p className="text-slate-400 text-sm md:text-base">
+            <p className="text-slate-400/90 text-sm md:text-base leading-relaxed">
               A production-minded stack designed for reliability, transparency, and hackathon-grade polish.
             </p>
           </FadeInSection>
@@ -588,11 +588,11 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </div>
       </section>
 
-      <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6" aria-labelledby="cta-heading">
+      <section className="py-20 md:py-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" aria-labelledby="cta-heading">
         <FadeInSection>
           <div className="relative p-8 md:p-14 rounded-3xl border border-indigo-500/20 bg-gradient-to-r from-slate-950 via-indigo-950/25 to-slate-950 text-center overflow-hidden">
             <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" aria-hidden="true" />
-            <h2 id="cta-heading" className="text-3xl md:text-5xl font-black mb-4 tracking-tight">
+            <h2 id="cta-heading" className="text-3xl md:text-4xl font-semibold mb-4 tracking-tight landing-section-heading text-slate-50">
               Build right the first time.
             </h2>
             <p className="max-w-xl mx-auto text-slate-400 text-sm md:text-base leading-relaxed mb-8">
@@ -611,8 +611,10 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
         </FadeInSection>
       </section>
 
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="border-t border-white/[0.06] bg-slate-950/90 py-14 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10" aria-hidden="true" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-xl tracking-tight text-white">
@@ -656,6 +658,7 @@ export default function LandingPage({ onStartReview, onViewDashboard }) {
               <li><a href="#" className="hover:text-indigo-400 transition duration-200">SOC 2 Portal</a></li>
             </ul>
           </div>
+        </div>
         </div>
       </footer>
     </div>
