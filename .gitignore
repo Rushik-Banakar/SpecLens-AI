@@ -90,3 +90,4 @@ Desktop.ini
 *.sln
 *.sw?
 backend/scratch/
+backend/test_*.py
