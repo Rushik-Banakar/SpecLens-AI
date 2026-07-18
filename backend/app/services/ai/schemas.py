@@ -1,8 +1,9 @@
-"""
-schemas.py — Pydantic models for the AI Requirement Extraction Engine.
-These define the structured output contract for all AI extraction results.
-"""
-from typing import List, Literal, Optional
+"""Pydantic models for AI requirement extraction request and response contracts."""
+
+from __future__ import annotations
+
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -40,22 +41,26 @@ class Requirement(BaseModel):
 
 class ExtractionResult(BaseModel):
     """Complete result from the requirement extraction pipeline."""
-    requirements: List[Requirement]
+
+    requirements: list[Requirement]
 
 
 class DocumentInput(BaseModel):
     """A single parsed document to be sent for AI extraction."""
+
     name: str
     text: str
 
 
 class ExtractionRequest(BaseModel):
     """Request body for POST /api/extract-requirements."""
-    documents: List[DocumentInput]
+
+    documents: list[DocumentInput]
 
 
 class ExtractionResponse(BaseModel):
     """Response from POST /api/extract-requirements."""
+
     success: bool
-    requirements: List[Requirement]
+    requirements: list[Requirement]
     stats: dict

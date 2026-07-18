@@ -1,107 +1,134 @@
-import os
-import shutil
+"""FastAPI routes for document upload and parsing."""
+
+from __future__ import annotations
+
 import logging
+import os
 import traceback
-from typing import List
-from fastapi import APIRouter, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from typing import Any
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+
 from app.services.parser import parse_document
 
 router = APIRouter()
 logger = logging.getLogger("speclens.upload")
 
-# Ensure uploads directory is created in root
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB
-SUPPORTED_EXTENSIONS = {'.pdf', '.docx', '.txt', '.md', '.markdown'}
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md", ".markdown"}
+
 
 def get_readable_size(size_in_bytes: int) -> str:
+    """Convert a byte count into a human-readable size string."""
     if size_in_bytes < 1024:
         return f"{size_in_bytes} B"
-    elif size_in_bytes < 1024 * 1024:
-        return f"{(size_in_bytes / 1024):.1f} KB"
-    else:
-        return f"{(size_in_bytes / (1024 * 1024)):.1f} MB"
+    if size_in_bytes < 1024 * 1024:
+        return f"{size_in_bytes / 1024:.1f} KB"
+    return f"{size_in_bytes / (1024 * 1024):.1f} MB"
+
 
 @router.post("/upload")
-async def upload_files(files: List[UploadFile] = File(...)):
-    logger.info(f"[UPLOAD] Received {len(files)} file(s)")
-    parsed_docs = []
+async def upload_files(files: list[UploadFile] = File(...)) -> dict[str, Any]:
+    """Upload, validate, persist, and parse one or more specification documents.
 
-    for file in files:
-        filename = file.filename or "(unnamed)"
-        logger.info(f"[UPLOAD] Processing: {filename}")
+    Args:
+        files: Multipart file uploads from the client.
 
-        if not file.filename:
+    Returns:
+        Success flag and parsed document metadata for each accepted file.
+
+    Raises:
+        HTTPException: For unsupported formats, oversized files, or parse failures.
+    """
+    logger.info("[UPLOAD] Received %d file(s)", len(files))
+    logger.info("[STAGE] Upload received: %s", [file.filename for file in files if file.filename])
+    parsed_documents: list[dict[str, Any]] = []
+
+    for upload_file in files:
+        filename = upload_file.filename or "(unnamed)"
+        logger.info("[UPLOAD] Processing: %s", filename)
+
+        if not upload_file.filename:
             continue
 
-        # --- Stage 1: Extension validation ---
-        _, ext = os.path.splitext(file.filename)
-        ext = ext.lower()
-        logger.info(f"[VALIDATION] Extension: '{ext}'")
+        _, extension = os.path.splitext(upload_file.filename)
+        extension = extension.lower()
+        logger.info("[VALIDATION] Extension: '%s'", extension)
 
-        if ext not in SUPPORTED_EXTENSIONS:
-            logger.warning(f"[VALIDATION] Rejected — unsupported format: {ext}")
+        if extension not in SUPPORTED_EXTENSIONS:
+            logger.warning("[VALIDATION] Rejected — unsupported format: %s", extension)
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported format '{ext}' for file '{file.filename}'. Allowed: PDF, DOCX, TXT, MD"
+                detail=(
+                    f"Unsupported format '{extension}' for file '{upload_file.filename}'. "
+                    "Allowed: PDF, DOCX, TXT, MD"
+                ),
             )
 
-        # --- Stage 2: Read content & size validation ---
-        logger.info(f"[READ] Reading file content for size check...")
+        logger.info("[READ] Reading file content for size check...")
         try:
-            file_content = await file.read()
+            file_content = await upload_file.read()
             file_size = len(file_content)
-            logger.info(f"[READ] File size: {get_readable_size(file_size)} ({file_size} bytes)")
-        except Exception as e:
-            tb = traceback.format_exc()
-            logger.error(f"[READ] Failed to read file content:\n{tb}")
+            logger.info("[READ] File size: %s (%d bytes)", get_readable_size(file_size), file_size)
+        except Exception as exc:
+            error_trace = traceback.format_exc()
+            logger.error("[READ] Failed to read file content:\n%s", error_trace)
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to read uploaded file '{filename}': {str(e)}"
-            )
+                detail=f"Failed to read uploaded file '{filename}': {exc}",
+            ) from exc
 
-        if file_size > MAX_FILE_SIZE:
-            logger.warning(f"[VALIDATION] Rejected — exceeds 25MB: {get_readable_size(file_size)}")
+        if file_size > MAX_FILE_SIZE_BYTES:
+            logger.warning(
+                "[VALIDATION] Rejected — exceeds 25MB: %s",
+                get_readable_size(file_size),
+            )
             raise HTTPException(
                 status_code=413,
-                detail=f"File '{file.filename}' exceeds 25MB limit. (Size: {get_readable_size(file_size)})"
+                detail=(
+                    f"File '{upload_file.filename}' exceeds 25MB limit. "
+                    f"(Size: {get_readable_size(file_size)})"
+                ),
             )
 
-        # --- Stage 3: Save file to disk ---
-        file_path = os.path.join(UPLOAD_DIR, file.filename)
-        logger.info(f"[SAVE] Writing to: {file_path}")
+        file_path = os.path.join(UPLOAD_DIR, upload_file.filename)
+        logger.info("[SAVE] Writing to: %s", file_path)
         try:
-            # Write directly from the already-read content (avoids seek issues)
             with open(file_path, "wb") as buffer:
                 buffer.write(file_content)
             saved_size = os.path.getsize(file_path)
-            logger.info(f"[SAVE] Saved OK — disk size: {saved_size} bytes")
+            logger.info("[SAVE] Saved OK — disk size: %d bytes", saved_size)
             if saved_size != file_size:
-                logger.error(f"[SAVE] Size mismatch! Expected {file_size}, got {saved_size}")
-                raise RuntimeError(f"Written file size mismatch: expected {file_size}, got {saved_size}")
-        except Exception as e:
-            tb = traceback.format_exc()
-            logger.error(f"[SAVE] Failed to save file:\n{tb}")
+                raise RuntimeError(
+                    f"Written file size mismatch: expected {file_size}, got {saved_size}"
+                )
+        except Exception as exc:
+            error_trace = traceback.format_exc()
+            logger.error("[SAVE] Failed to save file:\n%s", error_trace)
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to save file '{filename}': {str(e)}"
-            )
+                detail=f"Failed to save file '{filename}': {exc}",
+            ) from exc
 
-        # --- Stage 4: Parse / text extraction ---
-        logger.info(f"[PARSER] Starting text extraction for: {file.filename}")
+        logger.info("[PARSER] Starting text extraction for: %s", upload_file.filename)
+        logger.info("[STAGE] Document parsing started: %s", upload_file.filename)
         try:
             extracted_text = parse_document(file_path)
             text_length = len(extracted_text)
-            logger.info(f"[PARSER] Extracted {text_length} characters successfully")
+            logger.info(
+                "[STAGE] Document parsing completed: %s (%d chars)",
+                upload_file.filename,
+                text_length,
+            )
+            logger.info("[PARSER] Extracted %d characters successfully", text_length)
             status = "Parsed Successfully"
-        except Exception as e:
-            tb = traceback.format_exc()
-            logger.error(f"[PARSER] Extraction failed:\n{tb}")
-            # Clean up saved file
+        except Exception as exc:
+            error_trace = traceback.format_exc()
+            logger.error("[PARSER] Extraction failed:\n%s", error_trace)
             if os.path.exists(file_path):
                 os.remove(file_path)
             raise HTTPException(
@@ -109,25 +136,30 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 detail={
                     "success": False,
                     "stage": "Document Parser",
-                    "file": file.filename,
-                    "error": str(e),
-                    "trace": tb
-                }
-            )
+                    "file": upload_file.filename,
+                    "error": str(exc),
+                    "trace": error_trace,
+                },
+            ) from exc
 
-        # --- Stage 5: Build response ---
-        doc_result = {
-            "filename": file.filename,
-            "filetype": ext.lstrip('.').upper() if ext != '.markdown' else 'MD',
-            "size": get_readable_size(file_size),
-            "text_length": text_length,
-            "status": status
-        }
-        parsed_docs.append(doc_result)
-        logger.info(f"[DONE] {file.filename} → {text_length} chars, {get_readable_size(file_size)}")
+        parsed_documents.append(
+            {
+                "filename": upload_file.filename,
+                "filetype": extension.lstrip(".").upper() if extension != ".markdown" else "MD",
+                "size": get_readable_size(file_size),
+                "text_length": text_length,
+                "status": status,
+            }
+        )
+        logger.info(
+            "[DONE] %s -> %d chars, %s",
+            upload_file.filename,
+            text_length,
+            get_readable_size(file_size),
+        )
 
-    logger.info(f"[UPLOAD] Completed — returning {len(parsed_docs)} parsed document(s)")
+    logger.info("[UPLOAD] Completed — returning %d parsed document(s)", len(parsed_documents))
     return {
         "success": True,
-        "documents": parsed_docs
+        "documents": parsed_documents,
     }

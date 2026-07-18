@@ -1,23 +1,36 @@
-import os
-from app.parsers.pdf_parser import parse_pdf
-from app.parsers.docx_parser import parse_docx
-from app.parsers.txt_parser import parse_txt
-from app.parsers.md_parser import parse_md
+"""Unified document parsing facade used by upload and extraction routes."""
+
+from __future__ import annotations
+
+import logging
+
+from app.services.ai.document_loader import load_uploaded_document
+
+logger = logging.getLogger("speclens.parser")
+
 
 def parse_document(file_path: str) -> str:
+    """Parse an uploaded file and return extracted plain text.
+
+    Args:
+        file_path: Absolute or relative path to the uploaded document.
+
+    Returns:
+        Extracted document text with page/section breaks preserved.
+
+    Raises:
+        ValueError: If LangChain cannot load or parse the document.
     """
-    Detects file format extension and routes it to the correct parser module.
-    """
-    _, ext = os.path.splitext(file_path)
-    ext = ext.lower()
-    
-    if ext == '.pdf':
-        return parse_pdf(file_path)
-    elif ext == '.docx':
-        return parse_docx(file_path)
-    elif ext == '.txt':
-        return parse_txt(file_path)
-    elif ext in ('.md', '.markdown'):
-        return parse_md(file_path)
-    else:
-        raise ValueError(f"Unsupported extension: {ext}")
+    try:
+        logger.info("[STAGE] Document parsing started: %s", file_path)
+        documents = load_uploaded_document(file_path)
+        parsed_text = "\n\n".join(document.page_content for document in documents).strip()
+        logger.info(
+            "[STAGE] Document parsing completed: %s (%d chars)",
+            file_path,
+            len(parsed_text),
+        )
+        return parsed_text
+    except Exception as exc:
+        logger.exception("Parse failed for '%s'", file_path)
+        raise ValueError(f"Failed to load document through LangChain: {exc}") from exc

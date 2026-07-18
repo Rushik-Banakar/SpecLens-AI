@@ -1,4 +1,4 @@
-"""FastAPI route for POST /api/detect-collisions."""
+"""FastAPI route for POST /api/detect-duplicates."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from app.services.ai.collision_detector import detect_collisions
+from app.services.ai.duplicate_detector import detect_duplicates
 from app.services.ai.provider_manager import AllProvidersUnavailableError
 
 router = APIRouter()
-logger = logging.getLogger("speclens.routes.collisions")
+logger = logging.getLogger("speclens.routes.duplicates")
 
 
 class RequirementItem(BaseModel):
-    """Minimal requirement shape accepted by the collision engine."""
+    """Minimal requirement shape accepted by the duplicate engine."""
 
     id: str
     document: str
@@ -28,57 +28,52 @@ class RequirementItem(BaseModel):
     confidence: float = 0.8
 
 
-class CollisionRequest(BaseModel):
-    """Request body for collision detection."""
+class DuplicateRequest(BaseModel):
+    """Request body for duplicate detection."""
 
     requirements: list[RequirementItem]
 
 
-@router.post("/detect-collisions", response_model=None)
-async def detect_collisions_route(
-    body: CollisionRequest,
+@router.post("/detect-duplicates", response_model=None)
+async def detect_duplicates_route(
+    body: DuplicateRequest,
 ) -> dict[str, Any] | JSONResponse:
-    """Detect cross-document requirement collisions from extracted requirements.
+    """Detect duplicate or near-duplicate requirements across documents.
 
     Args:
         body: Structured requirements produced by the extraction pipeline.
 
     Returns:
-        Collision findings, health score, and analysis statistics.
+        Duplicate findings and analysis statistics.
     """
     if not body.requirements:
         return JSONResponse(
             status_code=400,
-            content={"success": False, "error": "No requirements provided for collision detection."},
+            content={"success": False, "error": "No requirements provided for duplicate detection."},
         )
 
     requirement_list = [requirement.model_dump() for requirement in body.requirements]
-    logger.info("[ROUTE] /detect-collisions called with %d requirements", len(requirement_list))
+    logger.info("[ROUTE] /detect-duplicates called with %d requirements", len(requirement_list))
 
     try:
         logger.info(
-            "[STAGE] Collision detection started: comparing %d requirements",
+            "[STAGE] Duplicate detection started: analysing %d requirements",
             len(requirement_list),
         )
-        detection_result = detect_collisions(requirement_list)
-
-        if detection_result.get("success") is False and detection_result.get("reason") == "RATE_LIMIT":
-            logger.info("[ROUTE] Collision detection rate limited.")
-            return JSONResponse(status_code=200, content=detection_result)
+        detection_result = detect_duplicates(requirement_list)
 
         logger.info(
-            "[STAGE] Collision detection completed: found %d collisions",
-            detection_result["stats"]["collisions_found"],
+            "[STAGE] Duplicate detection completed: found %d duplicates",
+            detection_result["stats"]["duplicates_found"],
         )
         logger.info(
-            "[ROUTE] Collision detection complete — %d collisions, health=%s, %ss",
-            detection_result["stats"]["collisions_found"],
-            detection_result["stats"]["health_score"],
+            "[ROUTE] Duplicate detection complete — %d duplicates, %ss",
+            detection_result["stats"]["duplicates_found"],
             detection_result["stats"]["elapsed_seconds"],
         )
         return {
             "success": True,
-            "collisions": detection_result["collisions"],
+            "duplicates": detection_result["duplicates"],
             "stats": detection_result["stats"],
         }
 
@@ -104,7 +99,7 @@ async def detect_collisions_route(
         logger.exception("[ROUTE] Runtime error: %s", exc)
         return JSONResponse(
             status_code=422,
-            content={"success": False, "stage": "AI Collision Detection", "error": str(exc), "trace": error_trace},
+            content={"success": False, "stage": "AI Duplicate Detection", "error": str(exc), "trace": error_trace},
         )
     except Exception as exc:
         error_trace = traceback.format_exc()

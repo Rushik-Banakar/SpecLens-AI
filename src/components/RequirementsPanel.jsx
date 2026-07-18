@@ -210,7 +210,7 @@ export default function RequirementsPanel({ requirements = [], stats = null, isL
                 <Sparkles size={18} className="absolute inset-0 m-auto text-indigo-400 animate-pulse" />
               </div>
               <div className="text-center space-y-1">
-                <p className="text-sm font-semibold text-slate-300">Gemini Flash is extracting requirements...</p>
+                <p className="text-sm font-semibold text-slate-300">Groq Llama 3.3 is extracting requirements...</p>
                 <p className="text-xs text-slate-600">Analysing document semantics and classifying engineering requirements</p>
               </div>
             </div>

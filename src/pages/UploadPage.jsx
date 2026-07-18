@@ -17,47 +17,17 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
   const SUPPORTED_EXTENSIONS = ['pdf', 'docx', 'txt', 'md', 'markdown'];
 
   const analysisSteps = [
-    "Parsing uploaded files & extracting semantic tokens...",
-    "Validating requirements for logical coherence...",
-    "Cross-referencing authentication models with corporate security specifications...",
-    "Analyzing endpoint schemas in API definitions against PRD payment flows...",
-    "Tracing modular dependencies and detecting pipeline bottlenecks...",
-    "Generating interaction conflict graph and final project report..."
+    'Uploading documents...',
+    'Parsing documents...',
+    'Extracting requirements...',
+    'Categorizing requirements...',
+    'Running AI analysis...',
+    'Finding contradictions...',
+    'Generating recommendations...',
+    'Preparing dashboard...',
   ];
 
-  useEffect(() => {
-    let interval;
-    if (isAnalyzing) {
-      interval = setInterval(() => {
-        setAnalysisStep((prev) => {
-          if (prev < analysisSteps.length - 1) {
-            return prev + 1;
-          } else {
-            clearInterval(interval);
-            setTimeout(() => {
-              setIsAnalyzing(false);
-              // Read both results via setState callbacks to avoid stale closures
-              setExtractionResult(latestExtraction => {
-                setCollisionResult(latestCollision => {
-                  setTimeout(() => {
-                    onAnalysisComplete(
-                      files.filter(f => f.status === 'success'),
-                      latestExtraction,
-                      latestCollision
-                    );
-                  }, 0);
-                  return latestCollision;
-                });
-                return latestExtraction;
-              });
-            }, 1000);
-            return prev;
-          }
-        });
-      }, 1500);
-    }
-    return () => clearInterval(interval);
-  }, [isAnalyzing]);
+
 
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
@@ -257,6 +227,13 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
     setAnalysisStep(0);
     if (onAnalyzeStart) onAnalyzeStart();
 
+    const advanceStep = (step) => setAnalysisStep(step);
+
+    // Visual progress while work is in flight
+    const stepInterval = setInterval(() => {
+      setAnalysisStep(prev => (prev < analysisSteps.length - 2 ? prev + 1 : prev));
+    }, 1800);
+
     // Build document payloads for the extraction API
     const docsForExtraction = parsedFiles.map(f => ({
       name: f.name,
@@ -264,8 +241,10 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
     }));
 
     // ── Phase 1: Extract Requirements ────────────────────────────────────
+    advanceStep(1);
     let extractionData = null;
     try {
+      advanceStep(2);
       const res = await fetch(`${API_URL}/api/extract-requirements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,6 +252,7 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
         signal: AbortSignal.timeout(180000),
       });
       const data = await res.json();
+      console.log("API Response", data);
       if (data.success) {
         extractionData = { requirements: data.requirements, stats: data.stats, error: null };
       } else {
@@ -282,10 +262,14 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
       extractionData = { requirements: [], stats: null, error: `AI extraction failed: ${err.message}` };
     }
     setExtractionResult(extractionData);
+    advanceStep(3);
 
     // ── Phase 2: Detect Collisions (only if we have requirements) ────────
+    let collisionData = null;
     if (extractionData?.requirements?.length > 0) {
       try {
+        advanceStep(4);
+        advanceStep(5);
         const colRes = await fetch(`${API_URL}/api/detect-collisions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -294,16 +278,38 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
         });
         const colData = await colRes.json();
         if (colData.success) {
-          setCollisionResult({ collisions: colData.collisions, stats: colData.stats, error: null });
+          collisionData = { collisions: colData.collisions, stats: colData.stats, error: null };
         } else {
-          setCollisionResult({ collisions: [], stats: null, error: colData.error || 'Collision detection failed' });
+          collisionData = {
+            collisions: colData.collisions || [],
+            stats: colData.stats || null,
+            error: colData.message || colData.error || 'Collision detection failed',
+            success: colData.success,
+            reason: colData.reason,
+            message: colData.message,
+            retry_after_seconds: colData.retry_after_seconds
+          };
         }
       } catch (err) {
-        setCollisionResult({ collisions: [], stats: null, error: `Collision detection failed: ${err.message}` });
+        collisionData = { collisions: [], stats: null, error: `Collision detection failed: ${err.message}` };
       }
     } else {
-      setCollisionResult({ collisions: [], stats: null, error: extractionData?.error ? 'Skipped — extraction failed' : null });
+      collisionData = { collisions: [], stats: null, error: extractionData?.error ? 'Skipped — extraction failed' : null };
     }
+    setCollisionResult(collisionData);
+    advanceStep(6);
+
+    // Clean up step timer
+    clearInterval(stepInterval);
+    advanceStep(7);
+    setIsAnalyzing(false);
+
+    console.log("Navigating...");
+    onAnalysisComplete(
+      files.filter(f => f.status === 'success'),
+      extractionData,
+      collisionData
+    );
   };
 
   // Helper for file type icons
@@ -414,7 +420,7 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
                           {file.type}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-200">{file.name}</p>
+                          <p className="text-sm font-semibold text-slate-200 truncate max-w-[200px] sm:max-w-none" title={file.name}>{file.name}</p>
                           <div className="flex items-center space-x-2 text-xs text-slate-500 mt-0.5">
                             <span>{file.size}</span>
                             {file.text_length !== undefined && (
@@ -501,9 +507,12 @@ export default function UploadPage({ onAnalyzeStart, onAnalysisComplete }) {
           </div>
 
           {/* Dynamic Loading Step Message */}
-          <div className="w-full bg-slate-950 border border-slate-900/60 p-4 rounded-xl min-h-[76px] flex items-center justify-center text-center">
-            <p className="text-sm font-medium text-slate-300 animate-pulse">
+          <div className="w-full bg-slate-950 border border-slate-900/60 p-4 rounded-xl min-h-[76px] flex flex-col items-center justify-center text-center gap-2">
+            <p className="text-sm font-semibold text-slate-200">
               {analysisSteps[analysisStep]}
+            </p>
+            <p className="text-[10px] text-slate-600 font-mono">
+              Step {analysisStep + 1} of {analysisSteps.length}
             </p>
           </div>
 

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import LandingPage from './pages/LandingPage';
-import UploadPage from './pages/UploadPage';
-import ReviewDashboard from './pages/ReviewDashboard';
-import { Layers } from 'lucide-react';
+
+const UploadPage = lazy(() => import('./pages/UploadPage'));
+const ReviewDashboard = lazy(() => import('./pages/ReviewDashboard'));
 
 function App() {
   const [currentPage, setCurrentPage] = useState('landing');
@@ -23,6 +23,7 @@ function App() {
   };
 
   const handleAnalysisComplete = (docs, extractionResult, collisionResult) => {
+    console.log("Navigating...");
     setUploadedDocs(docs);
     setExtractedRequirements(extractionResult || null);
     setDetectedCollisions(collisionResult || null);
@@ -111,19 +112,23 @@ function App() {
         )}
         
         {currentPage === 'upload' && (
-          <UploadPage 
-            onAnalyzeStart={() => {}} 
-            onAnalysisComplete={handleAnalysisComplete} 
-          />
+          <Suspense fallback={null}>
+            <UploadPage 
+              onAnalyzeStart={() => {}} 
+              onAnalysisComplete={handleAnalysisComplete} 
+            />
+          </Suspense>
         )}
         
         {currentPage === 'dashboard' && (
-          <ReviewDashboard 
-            uploadedDocs={uploadedDocs}
-            extractedRequirements={extractedRequirements}
-            detectedCollisions={detectedCollisions}
-            onBackToUpload={handleStartReview} 
-          />
+          <Suspense fallback={null}>
+            <ReviewDashboard 
+              uploadedDocs={uploadedDocs}
+              extractedRequirements={extractedRequirements}
+              detectedCollisions={detectedCollisions}
+              onBackToUpload={handleStartReview} 
+            />
+          </Suspense>
         )}
       </main>
     </div>

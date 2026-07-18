@@ -29,25 +29,26 @@ PRIORITY ASSIGNMENT RULES:
 - Low:      nice-to-have, optimisation, future consideration
 
 CONFIDENCE SCORE:
-Assign a float from 0.0 to 1.0 indicating how clearly this is stated as a requirement:
-- 0.95–1.00: explicitly stated ("The system SHALL/MUST...")
-- 0.80–0.94: strongly implied from context
-- 0.60–0.79: inferred from user stories or descriptions
-- Below 0.60: speculative — include only if genuinely important
+Assign a float from 0.0 to 1.0 indicating how clearly this is stated as a requirement.
 
-OUTPUT FORMAT — CRITICAL RULES:
-1. Return ONLY a valid JSON object. No markdown, no explanation, no preamble.
-2. The JSON must have exactly one top-level key: "requirements"
-3. Each requirement must have: id, document, category, statement, priority, confidence
-4. IDs must be sequential: REQ-001, REQ-002, REQ-003, ...
-5. Statements must be complete, precise engineering sentences (not fragments).
-6. Do NOT include duplicate requirements.
-7. If the document contains no requirements, return: {"requirements": []}
+FORMAT RULES:
+Each requirement MUST be an object with the following keys:
+- id: sequential ID (e.g. "REQ-001")
+- document: the source document filename
+- category: one of ("Functional", "Non-Functional", "Business Rule", "Security", "Performance", "Compliance", "API", "User Story", "Acceptance Criteria", "Data Constraint", "Technical Constraint")
+- statement: complete, precise engineering sentence
+- priority: one of ("Critical", "High", "Medium", "Low")
+- confidence: float between 0.0 and 1.0
+
+You MUST return valid JSON only.
+Do not include markdown.
+Do not include explanations.
+Do not include bullet points.
+Do not include code fences.
+Return exactly a JSON array of requirement objects (e.g. [{"id": "REQ-001", ...}, ...]).
+If the document contains no requirements, return exactly: []
 """
 
-# ---------------------------------------------------------------------------
-# Main extraction prompt
-# ---------------------------------------------------------------------------
 EXTRACTION_PROMPT_TEMPLATE = PromptTemplate(
     input_variables=["document_name", "document_text", "system_context"],
     template="""{system_context}
@@ -59,6 +60,11 @@ DOCUMENT: {document_name}
 ============================================================
 
 Extract all software requirements from the document above.
-Return ONLY the JSON object — no other text whatsoever.
+You MUST return valid JSON only.
+Do not include markdown.
+Do not include explanations.
+Do not include bullet points.
+Do not include code fences.
+Return exactly a JSON array of requirement objects.
 """
 )

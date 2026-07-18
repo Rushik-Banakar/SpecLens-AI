@@ -88,3 +88,163 @@ body {
   stroke-dasharray: 5;
   animation: dash 2s linear infinite;
 }
+
+/* Landing page — subtle background and motion */
+@keyframes landing-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-12px) translateX(4px);
+    opacity: 0.65;
+  }
+}
+
+@keyframes landing-glow-drift {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 0.7;
+  }
+}
+
+@keyframes landing-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 15%, transparent 70%);
+}
+
+.landing-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(129, 140, 248, 0.55);
+  animation: landing-float 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.landing-glow-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(100px);
+  pointer-events: none;
+  animation: landing-glow-drift 14s ease-in-out infinite;
+}
+
+.landing-fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 280ms ease-out, transform 280ms ease-out;
+}
+
+.landing-fade-in.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.landing-card {
+  border: 1px solid rgba(30, 41, 59, 0.9);
+  background: rgba(3, 7, 18, 0.65);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 220ms ease-out,
+    border-color 220ms ease-out,
+    box-shadow 220ms ease-out;
+}
+
+.landing-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.08);
+}
+
+.btn-landing-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #7c3aed 100%);
+  border-radius: 0.875rem;
+  box-shadow: 0 4px 24px rgba(79, 70, 229, 0.35);
+  transition: transform 220ms ease-out, box-shadow 220ms ease-out, filter 220ms ease-out;
+}
+
+.btn-landing-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.45);
+  filter: brightness(1.06);
+}
+
+.btn-landing-primary:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 3px;
+}
+
+.btn-landing-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(51, 65, 85, 0.9);
+  border-radius: 0.875rem;
+  transition: transform 220ms ease-out, border-color 220ms ease-out, background 220ms ease-out, color 220ms ease-out;
+}
+
+.btn-landing-secondary:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(30, 41, 59, 0.9);
+  color: white;
+}
+
+.btn-landing-secondary:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-particle,
+  .landing-glow-orb {
+    animation: none !important;
+  }
+
+  .landing-fade-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .landing-card:hover {
+    transform: none;
+  }
+
+  .btn-landing-primary:hover,
+  .btn-landing-secondary:hover {
+    transform: none;
+  }
+}

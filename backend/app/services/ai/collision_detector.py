@@ -1,46 +1,41 @@
 """
 collision_detector.py — Requirement Collision Detection Engine.
 
-Takes the structured requirements produced by Phase 4 (requirement_extractor.py)
-and uses Gemini Flash + LangChain to find logical conflicts between them.
+Takes structured requirements from the extraction pipeline and uses LLMs to
+find logical conflicts between them.
 """
-import os
+from __future__ import annotations
+
 import json
-import time
 import logging
 import re
-from typing import List, Dict, Any
-
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import HumanMessage
+import time
+from typing import Any
 
 from app.services.ai.collision_prompt import COLLISION_PROMPT_TEMPLATE, COLLISION_SYSTEM_CONTEXT
+from app.services.ai.provider_manager import provider_manager
 
 logger = logging.getLogger("speclens.collision")
 
-# ---------------------------------------------------------------------------
-# Batching strategy
-# When there are many requirements, we batch them to stay within token limits.
-# Gemini Flash has a 1M context window, but we keep batches manageable.
-# ---------------------------------------------------------------------------
-MAX_REQS_PER_BATCH = 60   # Max requirements per LLM call
-MAX_CHARS_PER_REQ = 400   # Truncate very long statements to keep token count sane
+MAX_REQS_PER_BATCH = 60
+MAX_CHARS_PER_REQ = 400
+MAX_PARSE_ATTEMPTS = 2
+BATCH_ID_OFFSET_MULTIPLIER = 100
+DEFAULT_CONFIDENCE = 0.75
+
+HEALTH_SCORE_INITIAL = 100
+HEALTH_SCORE_PENALTY_CRITICAL = 12
+HEALTH_SCORE_PENALTY_HIGH = 8
+HEALTH_SCORE_PENALTY_MEDIUM = 4
+HEALTH_SCORE_PENALTY_LOW = 1
+
+VALID_SEVERITIES = frozenset({"Critical", "High", "Medium", "Low"})
 
 
-def _get_llm() -> ChatGoogleGenerativeAI:
-    """Initialise the Gemini Flash LLM via LangChain."""
-    api_key = os.getenv("GOOGLE_API_KEY", "")
-    if not api_key or api_key == "your_google_api_key_here":
-        raise ValueError(
-            "GOOGLE_API_KEY is not set. "
-            "Add it to backend/.env as GOOGLE_API_KEY=your_key_here"
-        )
-    return ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash",
-        google_api_key=api_key,
-        temperature=0.1,
-        max_output_tokens=8192,
-    )
+def _get_llm() -> Any:
+    """Initialise the LLM via the compatibility layer."""
+    from app.services.ai.llm import get_llm
+    return get_llm(temperature=0.1)
 
 
 def _strip_markdown_fences(text: str) -> str:
@@ -51,13 +46,14 @@ def _strip_markdown_fences(text: str) -> str:
     return text.strip()
 
 
-def _truncate_statement(stmt: str) -> str:
-    if len(stmt) > MAX_CHARS_PER_REQ:
-        return stmt[:MAX_CHARS_PER_REQ] + "..."
-    return stmt
+def _truncate_statement(statement: str) -> str:
+    """Truncate long requirement statements for prompt token budgeting."""
+    if len(statement) > MAX_CHARS_PER_REQ:
+        return statement[:MAX_CHARS_PER_REQ] + "..."
+    return statement
 
 
-def _reqs_to_json_str(requirements: List[Dict[str, Any]]) -> str:
+def _reqs_to_json_str(requirements: list[dict[str, Any]]) -> str:
     """Serialise requirements to a compact JSON string for the prompt."""
     slim = [
         {
@@ -72,12 +68,81 @@ def _reqs_to_json_str(requirements: List[Dict[str, Any]]) -> str:
     return json.dumps(slim, indent=2)
 
 
-def _parse_collision_json(raw: str, id_offset: int) -> List[Dict[str, Any]]:
+_VALID_FINDING_TYPES = {
+    "Contradiction",
+    "Ambiguity",
+    "Capacity Mismatch",
+    "Potential Conflict",
+    "Recommendation",
+}
+
+# Map legacy LLM type labels to the current classification set.
+_LEGACY_TYPE_ALIASES = {
+    "Authentication Conflict": "Contradiction",
+    "Authorization Conflict": "Contradiction",
+    "API Contract Conflict": "Contradiction",
+    "Business Rule Conflict": "Potential Conflict",
+    "Performance Conflict": "Ambiguity",
+    "Compliance Conflict": "Contradiction",
+    "Data Constraint Conflict": "Contradiction",
+    "Workflow Conflict": "Potential Conflict",
+    "Feature Logic Conflict": "Potential Conflict",
+    "Security Policy Conflict": "Contradiction",
+    "Technical Constraint Conflict": "Potential Conflict",
+}
+
+
+def _build_requirement_lookup(requirements: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Index requirements by ID for evidence enrichment."""
+    return {requirement.get("id"): requirement for requirement in requirements if requirement.get("id")}
+
+
+def _normalise_finding_type(raw_type: Any) -> str:
+    """Map model output to a supported finding classification."""
+    if not isinstance(raw_type, str):
+        return "Potential Conflict"
+    if raw_type in _VALID_FINDING_TYPES:
+        return raw_type
+    return _LEGACY_TYPE_ALIASES.get(raw_type, "Potential Conflict")
+
+
+def _enrich_collision_evidence(
+    collision: dict[str, Any],
+    requirement_lookup: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Preserve source evidence: requirement IDs, documents, and original statements."""
+    requirement_a = requirement_lookup.get(collision.get("requirement_a"), {})
+    requirement_b = requirement_lookup.get(collision.get("requirement_b"), {})
+
+    if requirement_a.get("statement"):
+        collision["statement_a"] = requirement_a["statement"]
+    if requirement_b.get("statement"):
+        collision["statement_b"] = requirement_b["statement"]
+
+    documents: list[str] = []
+    for document_name in collision.get("documents") or []:
+        if isinstance(document_name, str) and document_name:
+            documents.append(document_name)
+    for requirement in (requirement_a, requirement_b):
+        document_name = requirement.get("document")
+        if isinstance(document_name, str) and document_name and document_name not in documents:
+            documents.append(document_name)
+    collision["documents"] = documents
+
+    return collision
+
+
+def _parse_collision_json(
+    raw: str,
+    id_offset: int,
+    requirement_lookup: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     """
     Parse raw LLM output into a list of collision dicts.
     Raises ValueError if parsing fails after cleanup.
     """
     cleaned = _strip_markdown_fences(raw)
+    lookup = requirement_lookup or {}
 
     try:
         data = json.loads(cleaned)
@@ -92,58 +157,55 @@ def _parse_collision_json(raw: str, id_offset: int) -> List[Dict[str, Any]]:
             raise ValueError(f"No valid collision JSON found: {e}\nRaw: {cleaned[:400]}")
 
     raw_collisions = data.get("collisions", [])
-    collisions = []
-    valid_severities = {"Critical", "High", "Medium", "Low"}
-    valid_types = {
-        "Authentication Conflict", "Authorization Conflict", "API Contract Conflict",
-        "Business Rule Conflict", "Performance Conflict", "Compliance Conflict",
-        "Data Constraint Conflict", "Workflow Conflict", "Feature Logic Conflict",
-        "Security Policy Conflict", "Technical Constraint Conflict",
-    }
+    collisions: list[dict[str, Any]] = []
 
-    for i, col in enumerate(raw_collisions):
-        # Re-assign IDs to be globally unique across batches
-        col["id"] = f"COL-{id_offset + i + 1:03d}"
+    for index, collision in enumerate(raw_collisions):
+        collision["id"] = f"COL-{id_offset + index + 1:03d}"
 
-        # Validate + normalise severity
-        if col.get("severity") not in valid_severities:
-            col["severity"] = "Medium"
+        if collision.get("severity") not in VALID_SEVERITIES:
+            collision["severity"] = "Medium"
 
-        # Validate + normalise type
-        if col.get("type") not in valid_types:
-            col["type"] = "Feature Logic Conflict"
+        collision["type"] = _normalise_finding_type(collision.get("type"))
 
-        # Clamp confidence
         try:
-            col["confidence"] = max(0.0, min(1.0, float(col.get("confidence", 0.75))))
+            confidence = float(collision.get("confidence", DEFAULT_CONFIDENCE))
+            if confidence > 1.0:
+                confidence = confidence / 100.0
+            collision["confidence"] = max(0.0, min(1.0, confidence))
         except (TypeError, ValueError):
-            col["confidence"] = 0.75
+            collision["confidence"] = DEFAULT_CONFIDENCE
 
-        # Ensure documents is a list
-        if not isinstance(col.get("documents"), list):
-            col["documents"] = []
+        if not isinstance(collision.get("documents"), list):
+            collision["documents"] = []
 
-        # Ensure string fields
-        for field in ("requirement_a", "requirement_b", "statement_a", "statement_b",
-                      "reason", "recommendation"):
-            if not isinstance(col.get(field), str):
-                col[field] = ""
+        for field in (
+            "requirement_a",
+            "requirement_b",
+            "statement_a",
+            "statement_b",
+            "reason",
+            "recommendation",
+        ):
+            if not isinstance(collision.get(field), str):
+                collision[field] = ""
 
-        collisions.append(col)
+        collision = _enrich_collision_evidence(collision, lookup)
+        collisions.append(collision)
 
     return collisions
 
 
 def _run_collision_batch(
-    llm: ChatGoogleGenerativeAI,
-    requirements: List[Dict[str, Any]],
+    llm: Any,
+    requirements: list[dict[str, Any]],
     id_offset: int,
     attempt: int = 1,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
-    Send one batch of requirements to Gemini and return detected collisions.
+    Send one batch of requirements to the ProviderManager and return detected collisions.
     Automatically retries once on malformed JSON.
     """
+    logger.info("[COLLISION] Starting batch")
     reqs_json = _reqs_to_json_str(requirements)
     logger.info(
         f"[COLLISION] Building prompt for {len(requirements)} requirements "
@@ -155,49 +217,53 @@ def _run_collision_batch(
         requirements_json=reqs_json,
     )
 
-    logger.info(f"[COLLISION] Calling Gemini Flash (attempt {attempt})...")
     t0 = time.time()
-
     try:
-        response = llm.invoke([HumanMessage(content=prompt_text)])
-        raw_output = response.content
-        elapsed = time.time() - t0
-        logger.info(f"[COLLISION] LLM responded in {elapsed:.2f}s — {len(raw_output)} chars")
+        logger.info("[STAGE] AI invocation started (Collision Detection)")
+        raw_output = provider_manager.generate(prompt_text, temperature=0.1)
+        logger.info("[STAGE] AI invocation completed (Collision Detection)")
     except Exception as e:
-        raise RuntimeError(f"Gemini API call failed in collision detector: {e}")
+        # Re-raise standard/custom provider failures
+        raise e
+
+    elapsed = time.time() - t0
+    logger.info(f"[COLLISION] LLM responded in {elapsed:.2f}s — {len(raw_output)} chars")
 
     try:
-        collisions = _parse_collision_json(raw_output, id_offset)
+        logger.info("[STAGE] Response parsing started (Collision Detection)")
+        requirement_lookup = _build_requirement_lookup(requirements)
+        collisions = _parse_collision_json(raw_output, id_offset, requirement_lookup)
+        logger.info(f"[STAGE] Response parsing completed (Collision Detection): parsed {len(collisions)} collisions")
         logger.info(f"[COLLISION] Parsed {len(collisions)} collision(s) from batch")
         return collisions
     except ValueError as parse_err:
-        if attempt < 2:
-            logger.warning(f"[COLLISION] JSON parse failed (attempt {attempt}), retrying...\n{parse_err}")
+        logger.exception("[COLLISION] JSON parse failed on attempt %d", attempt)
+        if attempt < MAX_PARSE_ATTEMPTS:
+            logger.warning("[COLLISION] JSON parse failed (attempt %d), retrying...\n%s", attempt, parse_err)
             return _run_collision_batch(llm, requirements, id_offset, attempt=2)
-        else:
-            raise RuntimeError(f"Failed to parse collision output after 2 attempts: {parse_err}")
+        raise RuntimeError(f"Failed to parse collision output after 2 attempts: {parse_err}") from parse_err
 
 
-def _compute_health_score(collisions: List[Dict[str, Any]]) -> int:
+def _compute_health_score(collisions: list[dict[str, Any]]) -> int:
     """
     Dynamic health score starting at 100.
     Critical: -12, High: -8, Medium: -4, Low: -1. Minimum 0.
     """
-    score = 100
-    for col in collisions:
-        sev = col.get("severity", "Low")
-        if sev == "Critical":
-            score -= 12
-        elif sev == "High":
-            score -= 8
-        elif sev == "Medium":
-            score -= 4
+    score = HEALTH_SCORE_INITIAL
+    for collision in collisions:
+        severity = collision.get("severity", "Low")
+        if severity == "Critical":
+            score -= HEALTH_SCORE_PENALTY_CRITICAL
+        elif severity == "High":
+            score -= HEALTH_SCORE_PENALTY_HIGH
+        elif severity == "Medium":
+            score -= HEALTH_SCORE_PENALTY_MEDIUM
         else:
-            score -= 1
+            score -= HEALTH_SCORE_PENALTY_LOW
     return max(0, score)
 
 
-def detect_collisions(requirements: List[Dict[str, Any]]) -> Dict[str, Any]:
+def detect_collisions(requirements: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Main entry point: detect requirement collisions across the full requirements list.
 
@@ -232,13 +298,12 @@ def detect_collisions(requirements: List[Dict[str, Any]]) -> Dict[str, Any]:
     )
 
     llm = _get_llm()
-    all_collisions: List[Dict[str, Any]] = []
+    all_collisions: list[dict[str, Any]] = []
     llm_calls = 0
 
-    # Batch the requirements to keep prompt size manageable
     batches = [
-        requirements[i:i + MAX_REQS_PER_BATCH]
-        for i in range(0, req_count, MAX_REQS_PER_BATCH)
+        requirements[index : index + MAX_REQS_PER_BATCH]
+        for index in range(0, req_count, MAX_REQS_PER_BATCH)
     ]
 
     logger.info(
@@ -247,7 +312,7 @@ def detect_collisions(requirements: List[Dict[str, Any]]) -> Dict[str, Any]:
     )
 
     for batch_idx, batch in enumerate(batches):
-        id_offset = batch_idx * 100
+        id_offset = batch_idx * BATCH_ID_OFFSET_MULTIPLIER
         logger.info(
             f"[COLLISION] Batch {batch_idx + 1}/{len(batches)}: "
             f"{len(batch)} requirements"
@@ -256,7 +321,7 @@ def detect_collisions(requirements: List[Dict[str, Any]]) -> Dict[str, Any]:
             batch_collisions = _run_collision_batch(llm, batch, id_offset)
             all_collisions.extend(batch_collisions)
             llm_calls += 1
-        except RuntimeError as e:
+        except Exception as e:
             logger.error(f"[COLLISION] Batch {batch_idx + 1} failed: {e}")
             raise
 

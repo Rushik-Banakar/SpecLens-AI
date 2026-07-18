@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import {
-  ChevronDown, ChevronRight, ShieldAlert, AlertTriangle, Zap,
-  Lock, Activity, FileText, ChevronUp, Lightbulb, Layers
+  ChevronDown, ChevronRight, ShieldAlert, AlertTriangle,
+  Lightbulb, ChevronUp,
 } from 'lucide-react';
+import {
+  buildFindingTitle,
+  getConfidencePresentation,
+  formatReasonForDisplay,
+  formatRecommendationForDisplay,
+} from '../utils/presentationHelpers';
 
 // ── Severity config ──────────────────────────────────────────────────────────
 const SEV_CONFIG = {
@@ -32,16 +38,20 @@ const SEV_CONFIG = {
   },
 };
 
-// ── Confidence bar ─────────────────────────────────────────────────────────
-function ConfidenceBar({ value }) {
-  const pct = Math.round(value * 100);
-  const color = pct >= 90 ? 'bg-rose-500' : pct >= 70 ? 'bg-amber-500' : 'bg-sky-500';
+// ── Confidence display ─────────────────────────────────────────────────────
+function ConfidenceDisplay({ value }) {
+  const { pct, label } = getConfidencePresentation(value);
+  const color = pct >= 95 ? 'bg-emerald-500' : pct >= 85 ? 'bg-indigo-500' : pct >= 70 ? 'bg-amber-500' : 'bg-slate-500';
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+    <div className="space-y-1">
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-sm font-extrabold text-slate-200">{pct}%</span>
+        <span className="text-[9px] font-semibold text-slate-400">{label}</span>
+      </div>
+      <div className="w-24 h-1 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
         <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[10px] font-bold text-slate-500 w-7 text-right">{pct}%</span>
+      <span className="text-[9px] font-medium text-slate-500 block text-right">{label} Confidence</span>
     </div>
   );
 }
@@ -50,21 +60,21 @@ function ConfidenceBar({ value }) {
 export function CollisionCard({ collision, index }) {
   const [expanded, setExpanded] = useState(false);
   const sev = SEV_CONFIG[collision.severity] || SEV_CONFIG.Low;
+  const title = buildFindingTitle(collision);
+  const reason = formatReasonForDisplay(collision);
+  const recommendation = formatRecommendationForDisplay(collision);
 
   return (
     <div className={`rounded-xl border ${expanded ? sev.glow : 'border-slate-900'} bg-slate-950/20 overflow-hidden transition-all duration-200`}>
-      {/* Card header — always visible */}
       <button
         onClick={() => setExpanded(e => !e)}
         className="w-full text-left p-4 hover:bg-slate-900/20 transition-colors"
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            {/* Severity dot */}
-            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${sev.dot}`} />
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${sev.dot}`} />
 
-            <div className="min-w-0 space-y-1.5">
-              {/* Top row: ID + severity + type */}
+            <div className="min-w-0 space-y-2 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-mono font-bold text-slate-600 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded">
                   {collision.id}
@@ -77,20 +87,19 @@ export function CollisionCard({ collision, index }) {
                 </span>
               </div>
 
-              {/* Conflict summary: REQ-A vs REQ-B */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="font-bold text-slate-300 font-mono">{collision.requirement_a}</span>
-                <span className="text-rose-500 font-black">⟷</span>
-                <span className="font-bold text-slate-300 font-mono">{collision.requirement_b}</span>
+              <h4 className="text-sm font-bold text-slate-100 leading-snug pr-2">{title}</h4>
+
+              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{reason}</p>
+
+              <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-slate-500">
+                <span>{collision.requirement_a}</span>
+                <span className="text-rose-500">⟷</span>
+                <span>{collision.requirement_b}</span>
               </div>
 
-              {/* Reason (one-liner) */}
-              <p className="text-xs text-slate-400 line-clamp-2">{collision.reason}</p>
-
-              {/* Source documents */}
               <div className="flex flex-wrap gap-1">
                 {(collision.documents || []).map((doc, i) => (
-                  <span key={i} className="text-[9px] text-slate-600 bg-slate-950 border border-slate-900 px-1.5 py-0.5 rounded">
+                  <span key={i} className="text-[9px] text-slate-500 bg-slate-950 border border-slate-900 px-1.5 py-0.5 rounded truncate max-w-[160px]" title={doc}>
                     {doc}
                   </span>
                 ))}
@@ -98,11 +107,8 @@ export function CollisionCard({ collision, index }) {
             </div>
           </div>
 
-          {/* Right: confidence + chevron */}
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <div className="w-20">
-              <ConfidenceBar value={collision.confidence} />
-            </div>
+            <ConfidenceDisplay value={collision.confidence} />
             {expanded
               ? <ChevronUp size={14} className="text-slate-500" />
               : <ChevronDown size={14} className="text-slate-500" />
@@ -111,35 +117,39 @@ export function CollisionCard({ collision, index }) {
         </div>
       </button>
 
-      {/* Expanded body */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-slate-900/60">
-          {/* Conflicting statements */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+        <div className="px-4 pb-4 space-y-4 border-t border-slate-900/60">
+          <div className="pt-3 space-y-2">
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Reasoning &amp; Impact</span>
+            <p className="text-xs text-slate-300 leading-relaxed">{reason}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 rounded-xl border border-slate-900 bg-slate-950/60 space-y-1">
               <span className="text-[9px] font-bold text-rose-400 uppercase tracking-widest block">
-                {collision.requirement_a} — Document A
+                Evidence — {collision.requirement_a}
               </span>
-              <p className="text-xs text-slate-300 italic leading-relaxed">
+              <span className="text-[9px] text-slate-600 block truncate" title={(collision.documents || [])[0]}>{(collision.documents || [])[0] || 'Document A'}</span>
+              <p className="text-xs text-slate-300 italic leading-relaxed break-words">
                 {collision.statement_a || '—'}
               </p>
             </div>
             <div className="p-3 rounded-xl border border-slate-900 bg-slate-950/60 space-y-1">
               <span className="text-[9px] font-bold text-rose-400 uppercase tracking-widest block">
-                {collision.requirement_b} — Document B
+                Evidence — {collision.requirement_b}
               </span>
-              <p className="text-xs text-slate-300 italic leading-relaxed">
+              <span className="text-[9px] text-slate-600 block truncate" title={(collision.documents || [])[1]}>{(collision.documents || [])[1] || 'Document B'}</span>
+              <p className="text-xs text-slate-300 italic leading-relaxed break-words">
                 {collision.statement_b || '—'}
               </p>
             </div>
           </div>
 
-          {/* AI Recommendation */}
           <div className="p-3 rounded-xl border border-indigo-500/10 bg-indigo-950/10 flex gap-2">
             <Lightbulb size={14} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest block">AI Recommendation</span>
-              <p className="text-xs text-slate-300 leading-relaxed">{collision.recommendation || '—'}</p>
+            <div className="space-y-1">
+              <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest block">Suggested Fix</span>
+              <p className="text-xs text-slate-300 leading-relaxed">{recommendation}</p>
             </div>
           </div>
         </div>
@@ -214,7 +224,7 @@ export default function CollisionsPanel({ collisions = [], stats = null, isLoadi
                 <ShieldAlert size={18} className="absolute inset-0 m-auto text-rose-400 animate-pulse" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-semibold text-slate-300">Gemini Flash detecting collisions...</p>
+                <p className="text-sm font-semibold text-slate-300">Groq Llama 3.3 detecting collisions...</p>
                 <p className="text-xs text-slate-600">Comparing {stats?.requirements_compared || 0} requirements across all document pairs</p>
               </div>
             </div>

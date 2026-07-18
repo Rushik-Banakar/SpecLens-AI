@@ -6,10 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="SpecLens AI is an AI Design Review Engineer that checks software project documents for contradictions, ambiguities, and requirement gaps." />
     
-    <!-- Google Fonts: Inter -->
+    <!-- Prevent white flash before Tailwind CSS loads -->
+    <style>
+      html, body, #root { background-color: #030712; color: #f1f5f9; min-height: 100%; }
+    </style>
+
+    <!-- Google Fonts: Inter (non-blocking) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
     
     <title>SpecLens AI — Review your project before your developers do</title>
   </head>

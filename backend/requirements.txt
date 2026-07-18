@@ -6,6 +6,15 @@ python-docx
 markdown
 python-dotenv
 langchain
-langchain-google-genai
-google-generativeai
+langchain-groq
+groq
 langchain-core
+langchain-community
+langchain-huggingface
+langchain-text-splitters
+langchain-classic
+faiss-cpu
+sentence-transformers
+huggingface-hub
+docx2txt
+unstructured[md]
