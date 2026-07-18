@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy requirements from the backend folder
+COPY backend/requirements.txt .
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -10,7 +11,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy the backend application
+COPY backend/ .
 
 EXPOSE 7860
 
