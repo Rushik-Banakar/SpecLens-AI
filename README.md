@@ -4,15 +4,32 @@
 
 ### Review your project before your developers do.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://spec-lens-ai-eta.vercel.app/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Rushik-Banakar/SpecLens-AI)
+[![Demo Video](https://img.shields.io/badge/Demo-3_Min_Video-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://drive.google.com/file/d/1a3Ewui1Gy6IlBwjWZlvgm0gdgWi_ZJ0V/view?usp=sharing)
+[![Pitch Deck](https://img.shields.io/badge/Pitch-Deck-F59E0B?style=flat-square&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1eBD0kKEBcunLOZ2QZUjga0zslpPeYwCD/view?usp=sharing)
+
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Build-Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-**SpecLens AI** is an AI-powered specification review platform for product and engineering teams. It ingests project documents, extracts structured requirements, and surfaces cross-document conflicts—contradictions, ambiguities, capacity mismatches, and more—before development begins. Catch specification risk early, when fixes are still inexpensive.
+**SpecLens AI** is an AI-powered Design Review Engineer that helps engineering teams identify specification issues before development begins. It transforms scattered project knowledge into actionable insights by detecting contradictions, ambiguities, missing requirements, and engineering risks before a single line of code is written.
 
 </div>
+
+---
+
+## 🔗 Quick Links
+
+| Resource | Link |
+| --- | --- |
+| **Live Application** | [spec-lens-ai-eta.vercel.app](https://spec-lens-ai-eta.vercel.app/) |
+| **GitHub Repository** | [Rushik-Banakar/SpecLens-AI](https://github.com/Rushik-Banakar/SpecLens-AI) |
+| **3-Minute Demo Video** | [Watch on Google Drive](https://drive.google.com/file/d/1a3Ewui1Gy6IlBwjWZlvgm0gdgWi_ZJ0V/view?usp=sharing) |
+| **1-Minute Project Overview** | [Watch on Google Drive](https://drive.google.com/file/d/17b36y0B0jufnIjjA1rljtPQCpMbcQl83/view?usp=sharing) |
+| **Pitch Deck** | [View on Google Drive](https://drive.google.com/file/d/1eBD0kKEBcunLOZ2QZUjga0zslpPeYwCD/view?usp=sharing) |
 
 ---
 
@@ -161,10 +178,13 @@ The provider manager handles key rotation, automatic failover, retries, and cool
 
 ### Deployment
 
-| Component | Approach |
+| Component | Deployment |
 | --- | --- |
-| **Frontend** | `npm run build` → static assets served via any CDN or static host |
-| **Backend** | Uvicorn ASGI server behind a reverse proxy (e.g. Nginx) |
+| **Frontend** | Vercel — [spec-lens-ai-eta.vercel.app](https://spec-lens-ai-eta.vercel.app/) |
+| **Backend** | AWS EC2 |
+| **Reverse Proxy** | Nginx |
+| **HTTPS** | Let's Encrypt SSL |
+| **Domain** | DuckDNS |
 
 ---
 
@@ -231,7 +251,7 @@ SpecLens AI/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/speclens-ai.git
+git clone https://github.com/Rushik-Banakar/SpecLens-AI.git
 cd speclens-ai
 ```
 
@@ -347,6 +367,10 @@ npm run dev
 
 Open **http://localhost:5173** in your browser.
 
+**Want to try SpecLens AI without local setup?**
+
+🌐 Live Demo: https://spec-lens-ai-eta.vercel.app/
+
 ### Usage flow
 
 1. Click **Start Review** on the landing page.
@@ -456,6 +480,6 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 Helping engineering teams detect costly requirement defects before a single line of code is written.
 
-[Start a Review](#running-locally) · [Report an Issue](https://github.com/your-org/speclens-ai/issues)
+[Live Demo](https://spec-lens-ai-eta.vercel.app/) · [Start a Review](#running-locally) · [Report an Issue](https://github.com/Rushik-Banakar/SpecLens-AI/issues)
 
 </div>
