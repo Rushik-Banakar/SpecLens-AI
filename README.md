@@ -4,11 +4,6 @@
 
 ### Review your project before your developers do.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://spec-lens-ai-eta.vercel.app/)
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Rushik-Banakar/SpecLens-AI)
-[![Demo Video](https://img.shields.io/badge/Demo-3_Min_Video-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://drive.google.com/file/d/1a3Ewui1Gy6IlBwjWZlvgm0gdgWi_ZJ0V/view?usp=sharing)
-[![Pitch Deck](https://img.shields.io/badge/Pitch-Deck-F59E0B?style=flat-square&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1eBD0kKEBcunLOZ2QZUjga0zslpPeYwCD/view?usp=sharing)
-
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Build-Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -82,30 +77,30 @@ A separate duplicate-detection API (`POST /api/detect-duplicates`) can identify 
 
 ```mermaid
 flowchart TD
-    A[User] --> B[Upload Documents]
-    B --> C[Document Parser]
-    C --> D[Requirement Extraction LLM]
-    D --> E[Requirement Categorization]
-    E --> F[Cross-Document Comparison]
-    F --> G[Conflict Detection]
-    G --> H[Risk Analysis]
-    H --> I[Executive Summary]
-    I --> J[Interactive Dashboard]
+    A["User"] --> B["Upload Documents"]
+    B --> C["Document Parser"]
+    C --> D["Requirement Extraction LLM"]
+    D --> E["Requirement Categorization"]
+    E --> F["Cross-Document Comparison"]
+    F --> G["Conflict Detection"]
+    G --> H["Risk Analysis"]
+    H --> I["Executive Summary"]
+    I --> J["Interactive Dashboard"]
 
-    C -.-> C1[PDF Parser]
-    C -.-> C2[DOCX Parser]
-    C -.-> C3[TXT / MD Parser]
+    C -.-> C1["PDF Parser"]
+    C -.-> C2["DOCX Parser"]
+    C -.-> C3["TXT / MD Parser"]
 
-    D -.-> D1[Provider Manager]
-    D1 -.-> D2[Gemini / Groq / OpenRouter]
+    D -.-> D1["Provider Manager"]
+    D1 -.-> D2["Gemini / Groq / OpenRouter"]
 
-    G -.-> G1[Contradiction]
-    G -.-> G2[Ambiguity]
-    G -.-> G3[Capacity Mismatch]
-    G -.-> G4[Potential Conflict]
-    G -.-> G5[Recommendation]
+    G -.-> G1["Contradiction"]
+    G -.-> G2["Ambiguity"]
+    G -.-> G3["Capacity Mismatch"]
+    G -.-> G4["Potential Conflict"]
+    G -.-> G5["Recommendation"]
 
-    F -.-> F1[Duplicate Detection API]
+    F -.-> F1["Duplicate Detection API"]
 ```
 
 ### API Surface
@@ -365,11 +360,11 @@ curl http://localhost:8000/api/health
 npm run dev
 ```
 
-Open **http://localhost:5173** in your browser.
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 **Want to try SpecLens AI without local setup?**
 
-🌐 Live Demo: https://spec-lens-ai-eta.vercel.app/
+[Live Demo](https://spec-lens-ai-eta.vercel.app/)
 
 ### Usage flow
 
@@ -480,6 +475,6 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 Helping engineering teams detect costly requirement defects before a single line of code is written.
 
-[Live Demo](https://spec-lens-ai-eta.vercel.app/) · [Start a Review](#running-locally) · [Report an Issue](https://github.com/Rushik-Banakar/SpecLens-AI/issues)
+[Start a Review](#running-locally) · [Report an Issue](https://github.com/Rushik-Banakar/SpecLens-AI/issues)
 
 </div>
