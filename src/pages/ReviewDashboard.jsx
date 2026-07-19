@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import RequirementsPanel from '../components/RequirementsPanel';
 import CollisionsPanel from '../components/CollisionsPanel';
+import AppLogo from '../components/AppLogo';
 import {
   buildExecutiveSummary,
   buildAnalysisMetadata,
@@ -220,9 +221,11 @@ export default function ReviewDashboard({ onBackToUpload, uploadedDocs = [], ext
 
       {/* Mobile Top Navbar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-slate-900/80 border-b border-slate-800 z-30 w-full sticky top-0 backdrop-blur-md">
-        <div className="flex items-center space-x-2">
-          <span className="font-black text-lg text-white">SpecLens <span className="text-indigo-400">AI</span></span>
-        </div>
+        <AppLogo
+          onClick={() => setIsMobileMenuOpen(false)}
+          showIcon={false}
+          textClassName="font-black text-lg text-white"
+        />
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
           className="p-2 text-slate-400 hover:text-white rounded-lg"
@@ -233,13 +236,15 @@ export default function ReviewDashboard({ onBackToUpload, uploadedDocs = [], ext
 
       {/* Left Navigation Sidebar */}
       <aside className={`w-full md:w-64 border-r border-slate-900 bg-slate-900/30 flex flex-col justify-between fixed md:sticky top-0 h-[calc(100vh-57px)] md:h-screen z-20 transition-all duration-300 ${
-        isMobileMenuOpen ? 'left-0 translate-x-0' : '-translate-x-full md:translate-x-0'
+        isMobileMenuOpen ? 'left-0 translate-x-0 pointer-events-auto' : '-translate-x-full md:translate-x-0 pointer-events-none md:pointer-events-auto'
       }`}>
         <div className="p-6 space-y-8 flex-1 overflow-y-auto">
           {/* Logo */}
-          <div className="hidden md:flex items-center space-x-2">
-            <span className="font-extrabold text-xl tracking-tight text-white">SpecLens <span className="text-indigo-400">AI</span></span>
-          </div>
+          <AppLogo
+            className="hidden md:inline-flex"
+            showIcon={false}
+            textClassName="font-extrabold text-xl tracking-tight text-white"
+          />
 
           {/* Nav Items */}
           <nav className="space-y-1">

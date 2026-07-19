@@ -1,5 +1,7 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useCallback } from 'react';
 import LandingPage from './pages/LandingPage';
+import AppLogo from './components/AppLogo';
+import { NavigationProvider } from './context/NavigationContext';
 
 const UploadPage = lazy(() => import('./pages/UploadPage'));
 const ReviewDashboard = lazy(() => import('./pages/ReviewDashboard'));
@@ -9,6 +11,11 @@ function App() {
   const [uploadedDocs, setUploadedDocs] = useState([]);
   const [extractedRequirements, setExtractedRequirements] = useState(null);
   const [detectedCollisions, setDetectedCollisions] = useState(null); // { collisions, stats, error }
+
+  const handleGoHome = useCallback(() => {
+    setCurrentPage('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const handleStartReview = () => {
     setCurrentPage('upload');
@@ -31,24 +38,13 @@ function App() {
   };
 
   return (
+    <NavigationProvider goHome={handleGoHome}>
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Top Header Navigation - Hidden on Dashboard for app-like workspace feel */}
       {currentPage !== 'dashboard' && (
         <header className="fixed top-0 left-0 w-full z-50 border-b border-white/[0.06] bg-slate-950/75 backdrop-blur-xl supports-[backdrop-filter]:bg-slate-950/60">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-[4.25rem] flex items-center justify-between gap-4">
-            <button
-              type="button"
-              className="flex items-center gap-2.5 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400 focus-visible:outline-offset-2"
-              onClick={() => setCurrentPage('landing')}
-              aria-label="Go to SpecLens AI home"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-indigo-500/20 ring-1 ring-white/10">
-                S
-              </div>
-              <span className="font-semibold text-lg tracking-tight text-white">
-                SpecLens <span className="text-indigo-400">AI</span>
-              </span>
-            </button>
+            <AppLogo />
 
             <nav className="hidden md:flex items-center gap-1 text-sm font-medium" aria-label="Primary">
               <button
@@ -135,6 +131,7 @@ function App() {
         )}
       </main>
     </div>
+    </NavigationProvider>
   );
 }
 
